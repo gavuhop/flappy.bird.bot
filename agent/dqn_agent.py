@@ -3,6 +3,19 @@ import tensorflow as tf
 from collections import deque
 import random
 
+# GPU Configuration
+gpus = tf.config.experimental.list_physical_devices('GPU')
+if gpus:
+    try:
+        # Currently, memory growth needs to be the same across GPUs
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+    except RuntimeError as e:
+        # Memory growth must be set before GPUs have been initialized
+        print(e)
+
 
 class DQNAgent:
     def __init__(self, state_size, action_size):
@@ -26,12 +39,21 @@ class DQNAgent:
         self.update_target_model()
 
     def _build_model(self):
+        # Use float32 for better performance on GPU
         model = tf.keras.Sequential([
-            tf.keras.layers.Dense(24, input_dim=self.state_size, activation='relu'),
-            tf.keras.layers.Dense(24, activation='relu'),
-            tf.keras.layers.Dense(self.action_size, activation='linear')
+            tf.keras.layers.Dense(24, input_dim=self.state_size, activation='relu', dtype='float32'),
+            tf.keras.layers.Dense(24, activation='relu', dtype='float32'),
+            tf.keras.layers.Dense(self.action_size, activation='linear', dtype='float32')
         ])
-        model.compile(loss='mse', optimizer=tf.keras.optimizers.Adam(learning_rate=self.learning_rate))
+        
+        # Use Adam optimizer with mixed precision
+        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
+        if gpus:
+            optimizer = tf.keras.mixed_precision.experimental.LossScaleOptimizer(
+                optimizer, loss_scale='dynamic'
+            )
+        
+        model.compile(loss='mse', optimizer=optimizer)
         return model
 
     def update_target_model(self):
@@ -43,6 +65,8 @@ class DQNAgent:
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
+        # Convert to float32 for GPU
+        state = state.astype('float32')
         act_values = self.model.predict(state.reshape(1, -1), verbose=0)
         return np.argmax(act_values[0])
 
@@ -51,10 +75,10 @@ class DQNAgent:
             return
         
         minibatch = random.sample(self.memory, self.batch_size)
-        states = np.array([i[0] for i in minibatch])
+        states = np.array([i[0] for i in minibatch]).astype('float32')
         actions = np.array([i[1] for i in minibatch])
         rewards = np.array([i[2] for i in minibatch])
-        next_states = np.array([i[3] for i in minibatch])
+        next_states = np.array([i[3] for i in minibatch]).astype('float32')
         dones = np.array([i[4] for i in minibatch])
 
         states = np.squeeze(states)
@@ -69,7 +93,7 @@ class DQNAgent:
             else:
                 targets[i][actions[i]] = rewards[i] + self.gamma * np.amax(next_target[i])
 
-        self.model.fit(states, targets, epochs=1, verbose=0)
+        self.model.fit(states, targets, epochs=1, verbose=0, batch_size=32)
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
