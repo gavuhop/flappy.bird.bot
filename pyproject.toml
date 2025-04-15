@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "flappy-bird-bot"
+version = "0.1.0"
+description = "Flappy Bird AI using DQN"
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pygame = "^2.5.2"
+keras-rl2 = "^1.0.5"
+numpy = "1.19.5"
+protobuf = "3.20.3"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api" 
