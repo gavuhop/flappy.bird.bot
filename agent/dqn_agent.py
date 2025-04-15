@@ -1,63 +1,65 @@
 import numpy as np
-import tensorflow as tf
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from collections import deque
 import random
 
-# GPU Configuration
-gpus = tf.config.experimental.list_physical_devices('GPU')
-if gpus:
-    try:
-        # Currently, memory growth needs to be the same across GPUs
-        for gpu in gpus:
-            tf.config.experimental.set_memory_growth(gpu, True)
-        logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-        print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-    except RuntimeError as e:
-        # Memory growth must be set before GPUs have been initialized
-        print(e)
+# Check if CUDA is available
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
+
+class DQN(nn.Module):
+    def __init__(self, state_size, action_size):
+        super(DQN, self).__init__()
+        # Tăng kích thước mạng để học tốt hơn
+        self.fc1 = nn.Linear(state_size, 128)
+        self.fc2 = nn.Linear(128, 128)
+        self.fc3 = nn.Linear(128, action_size)
+
+        # Khởi tạo trọng số với He initialization
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight, mode="fan_in", nonlinearity="relu")
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        x = torch.nn.functional.relu(self.fc1(x))
+        x = torch.nn.functional.relu(self.fc2(x))
+        return self.fc3(x)
 
 
 class DQNAgent:
     def __init__(self, state_size, action_size):
         self.state_size = state_size
         self.action_size = action_size
-        
-        # Hyperparameters
-        self.gamma = 0.95  # discount rate
+
+        # Hyperparameters tối ưu hóa
+        self.gamma = 0.99  # Tăng discount rate
         self.epsilon = 1.0  # exploration rate
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
-        self.learning_rate = 0.001
-        self.batch_size = 32
-        
+        self.epsilon_decay = 0.995  # Giảm epsilon nhanh hơn
+        self.learning_rate = 0.001  # Tăng learning rate
+        self.batch_size = 128  # Tăng batch size để học nhanh hơn
+
         # Memory for experience replay
-        self.memory = deque(maxlen=2000)
-        
+        self.memory = deque(maxlen=10000)  # Tăng kích thước memory
+
         # Neural Networks
-        self.model = self._build_model()
-        self.target_model = self._build_model()
+        self.model = DQN(state_size, action_size).to(device)
+        self.target_model = DQN(state_size, action_size).to(device)
+        self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
+        self.criterion = nn.MSELoss()
         self.update_target_model()
 
-    def _build_model(self):
-        # Use float32 for better performance on GPU
-        model = tf.keras.Sequential([
-            tf.keras.layers.Dense(24, input_dim=self.state_size, activation='relu', dtype='float32'),
-            tf.keras.layers.Dense(24, activation='relu', dtype='float32'),
-            tf.keras.layers.Dense(self.action_size, activation='linear', dtype='float32')
-        ])
-        
-        # Use Adam optimizer with mixed precision
-        optimizer = tf.keras.optimizers.Adam(learning_rate=self.learning_rate)
-        if gpus:
-            optimizer = tf.keras.mixed_precision.experimental.LossScaleOptimizer(
-                optimizer, loss_scale='dynamic'
-            )
-        
-        model.compile(loss='mse', optimizer=optimizer)
-        return model
-
     def update_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
+        # Soft update thay vì hard update
+        tau = 0.01  # Soft update parameter
+        for target_param, param in zip(
+            self.target_model.parameters(), self.model.parameters()
+        ):
+            target_param.data.copy_(tau * param.data + (1.0 - tau) * target_param.data)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -65,41 +67,62 @@ class DQNAgent:
     def act(self, state):
         if np.random.rand() <= self.epsilon:
             return random.randrange(self.action_size)
-        # Convert to float32 for GPU
-        state = state.astype('float32')
-        act_values = self.model.predict(state.reshape(1, -1), verbose=0)
-        return np.argmax(act_values[0])
+
+        with torch.no_grad():
+            state = torch.FloatTensor(state).unsqueeze(0).to(device)
+            act_values = self.model(state)
+            return torch.argmax(act_values[0]).item()
 
     def replay(self):
         if len(self.memory) < self.batch_size:
             return
-        
+
         minibatch = random.sample(self.memory, self.batch_size)
-        states = np.array([i[0] for i in minibatch]).astype('float32')
+
+        # Convert lists to numpy arrays first for better performance
+        states = np.array([i[0] for i in minibatch])
         actions = np.array([i[1] for i in minibatch])
         rewards = np.array([i[2] for i in minibatch])
-        next_states = np.array([i[3] for i in minibatch]).astype('float32')
+        next_states = np.array([i[3] for i in minibatch])
         dones = np.array([i[4] for i in minibatch])
 
-        states = np.squeeze(states)
-        next_states = np.squeeze(next_states)
+        # Convert numpy arrays to tensors
+        states = torch.FloatTensor(states).to(device)
+        actions = torch.LongTensor(actions).to(device)
+        rewards = torch.FloatTensor(rewards).to(device)
+        next_states = torch.FloatTensor(next_states).to(device)
+        dones = torch.FloatTensor(dones).to(device)
 
-        targets = self.model.predict(states, verbose=0)
-        next_target = self.target_model.predict(next_states, verbose=0)
+        # Current Q values
+        current_q_values = self.model(states).gather(1, actions.unsqueeze(1))
 
-        for i in range(self.batch_size):
-            if dones[i]:
-                targets[i][actions[i]] = rewards[i]
-            else:
-                targets[i][actions[i]] = rewards[i] + self.gamma * np.amax(next_target[i])
+        # Next Q values - Double DQN
+        with torch.no_grad():
+            # Sử dụng online network để chọn action
+            next_actions = self.model(next_states).max(1)[1].unsqueeze(1)
+            # Sử dụng target network để đánh giá
+            next_q_values = (
+                self.target_model(next_states).gather(1, next_actions).squeeze()
+            )
+            target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
 
-        self.model.fit(states, targets, epochs=1, verbose=0, batch_size=32)
+        # Compute loss and update
+        loss = self.criterion(current_q_values.squeeze(), target_q_values)
+        self.optimizer.zero_grad()
+        loss.backward()
+        # Clip gradients để ổn định training
+        torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
+        self.optimizer.step()
+
+        # Soft update target network
+        self.update_target_model()
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
     def load(self, name):
-        self.model.load_weights(name)
+        self.model.load_state_dict(torch.load(name, map_location=device))
+        self.target_model.load_state_dict(self.model.state_dict())
 
     def save(self, name):
-        self.model.save_weights(name) 
+        torch.save(self.model.state_dict(), name)

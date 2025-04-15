@@ -1,75 +1,79 @@
-# Flappy Bird AI
+# Flappy Bird AI with PyTorch
 
-Một phiên bản Flappy Bird được điều khiển bởi AI sử dụng thuật toán NEAT (NeuroEvolution of Augmenting Topologies).
+This project implements a Deep Q-Network (DQN) agent that learns to play Flappy Bird using PyTorch.
 
-## Mô tả
+## Overview
 
-Dự án này là một triển khai của trò chơi Flappy Bird với AI tự học. AI sử dụng thuật toán NEAT để học cách chơi trò chơi thông qua quá trình tiến hóa. Mỗi thế hệ, AI sẽ cố gắng bay qua các ống và học từ những lỗi lầm của nó.
+The project consists of three main components:
 
-## Tính năng
+1. **Flappy Bird Game**: A simple implementation of the Flappy Bird game using Pygame.
+2. **DQN Agent**: A Deep Q-Network agent implemented in PyTorch that learns to play the game.
+3. **Training and Testing**: Scripts to train and test the agent.
 
-- Trò chơi Flappy Bird cổ điển với đồ họa đơn giản
-- AI tự học sử dụng thuật toán NEAT
-- Hiển thị số lượng chim còn sống và điểm số
-- Hệ thống điểm dựa trên số ống vượt qua
-- Cấu hình NEAT có thể tùy chỉnh
+## Requirements
 
-## Yêu cầu
+- Python 3.10+
+- Pygame 2.6.1
+- NumPy 1.23.5
+- PyTorch 2.1.0
+- Protobuf 3.20.3+
 
-- Python 3.8+
-- Pygame
-- NEAT-Python
+## Installation
 
-## Cài đặt
+1. Clone the repository:
 
-1. Clone repository:
+   ```
+   git clone https://github.com/yourusername/flappy-bird-bot.git
+   cd flappy-bird-bot
+   ```
 
-```bash
-git clone https://github.com/yourusername/flappy.bird.bot.git
-cd flappy.bird.bot
+2. Install the required packages:
+   ```
+   pip install -r requirements.txt
+   ```
+
+## Usage
+
+### Training
+
+To train a new agent:
+
+```
+python main.py
 ```
 
-2. Cài đặt dependencies:
+Then select the "train" mode when prompted. The agent will be trained for 1000 episodes, and the weights will be saved every 100 episodes in the "weights" folder.
 
-```bash
-poetry install
+### Testing
+
+To test a trained agent:
+
+```
+python main.py
 ```
 
-## Cách sử dụng
+Then select the "test" mode when prompted and choose a weights file from the list.
 
-1. Chạy trò chơi với AI:
+## Project Structure
 
-```bash
-poetry run python ai_bird.py
-```
+- `main.py`: Main script for training and testing the agent.
+- `agent/dqn_agent.py`: Implementation of the DQN agent using PyTorch.
+- `game/flappy_bird.py`: Implementation of the Flappy Bird game using Pygame.
+- `weights/`: Directory where trained weights are saved.
+- `test_pytorch.py`: Script to test if PyTorch is working correctly.
+- `test_dqn.py`: Script to test the DQN agent implementation.
 
-2. Chạy trò chơi thông thường (điều khiển bằng người):
+## How It Works
 
-```bash
-poetry run python flappy_bird.py
-```
+The DQN agent learns to play Flappy Bird by:
 
-## Cấu trúc dự án
+1. Observing the current state of the game (bird position, velocity, pipe positions).
+2. Choosing an action (flap or do nothing) based on the current state.
+3. Receiving a reward based on the outcome of the action.
+4. Learning from the experience using a neural network.
 
-- `flappy_bird.py`: Trò chơi Flappy Bird gốc
-- `ai_bird.py`: Phiên bản AI của trò chơi
-- `config.txt`: Cấu hình cho thuật toán NEAT
-- `poetry.lock` & `pyproject.toml`: Quản lý dependencies
+The agent uses experience replay to learn from past experiences and a target network to stabilize training.
 
-## Cấu hình NEAT
+## License
 
-Các thông số chính trong `config.txt`:
-
-- Kích thước quần thể: 50
-- Số thế hệ tối đa: 50
-- Ngưỡng fitness: 100
-- Số input nodes: 4 (vị trí y của chim, vận tốc, vị trí y của ống gần nhất, khoảng cách đến ống)
-- Số output nodes: 1 (quyết định nhảy hay không)
-
-## Đóng góp
-
-Mọi đóng góp đều được hoan nghênh! Vui lòng tạo pull request hoặc mở issue để thảo luận về các thay đổi.
-
-## Giấy phép
-
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
