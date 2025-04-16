@@ -23,11 +23,13 @@ The project consists of three main components:
 1. Clone the repository:
 
    ```
-   git clone https://github.com/yourusername/flappy-bird-bot.git
+   git clone https://github.com/gavuhop/flappy-bird-bot.git
    cd flappy-bird-bot
    ```
+2. Install pytorch following guide:
+   https://pytorch.org/get-started/locally/
 
-2. Install the required packages:
+3. Install the required packages:
    ```
    pip install -r requirements.txt
    ```
