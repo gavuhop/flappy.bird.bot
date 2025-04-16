@@ -1,5 +1,6 @@
 from game.flappy_bird import FlappyBird
 from agent.dqn_agent import DQNAgent
+from utils.visualization import TrainingVisualizer
 import os
 
 
@@ -9,6 +10,9 @@ def train():
     state_size = 4  # [bird_y, bird_velocity, pipe_gap_y, pipe_distance]
     action_size = 2  # [do_nothing, flap]
     agent = DQNAgent(state_size, action_size)
+
+    # Initialize visualizer
+    visualizer = TrainingVisualizer()
 
     # Hỏi người dùng có muốn load lại trọng số không
     weights_path = None
@@ -44,6 +48,8 @@ def train():
             # For visualization
             if not env.render():
                 print("Training interrupted by user.")
+                visualizer.save_plot()
+                visualizer.close()
                 return
 
             # Get action
@@ -74,13 +80,21 @@ def train():
                     f"Reward: {total_reward:.2f}, Epsilon: {agent.epsilon:.2f}"
                 )
 
+                # Update visualization
+                visualizer.update(e + 1, score, total_reward, agent.epsilon)
+
                 # Save weights periodically
                 if (e + 1) % 100 == 0:
                     weights_file = f"weights/flappy_bird_dqn_{e+1}.pth"
                     agent.save(weights_file)
                     print(f"Weights saved to {weights_file}")
+                    # Save plot periodically
+                    visualizer.save_plot(f"training_metrics_{e+1}.png")
                 break
 
+    # Save final plot
+    visualizer.save_plot("final_training_metrics.png")
+    visualizer.close()
     env.close()
 
 
@@ -150,6 +164,7 @@ if __name__ == "__main__":
             print("\nStarting training mode...")
             print("Training will run for 1000 episodes")
             print("Weights will be saved every 100 episodes in the 'weights' folder")
+            print("Training metrics will be plotted in real-time")
             print("Press ESC to exit training")
             train()
         elif mode == "test":
