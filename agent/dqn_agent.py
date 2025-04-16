@@ -49,23 +49,44 @@ class NoisyLinear(nn.Module):
         return torch.nn.functional.linear(x, weight, bias)
 
 
-class DQN(nn.Module):
+class DuelingDQN(nn.Module):
     def __init__(self, state_size, action_size):
-        super(DQN, self).__init__()
-        # Sử dụng NoisyNet để tăng exploration
-        self.fc1 = NoisyLinear(state_size, 128)
-        self.fc2 = NoisyLinear(128, 128)
-        self.fc3 = NoisyLinear(128, action_size)
+        super(DuelingDQN, self).__init__()
+
+        # Feature extraction layers
+        self.feature_layer = nn.Sequential(
+            NoisyLinear(state_size, 128), nn.ReLU(), NoisyLinear(128, 128), nn.ReLU()
+        )
+
+        # Value stream
+        self.value_stream = nn.Sequential(
+            NoisyLinear(128, 64), nn.ReLU(), NoisyLinear(64, 1)
+        )
+
+        # Advantage stream
+        self.advantage_stream = nn.Sequential(
+            NoisyLinear(128, 64), nn.ReLU(), NoisyLinear(64, action_size)
+        )
 
     def forward(self, x):
-        x = torch.nn.functional.relu(self.fc1(x))
-        x = torch.nn.functional.relu(self.fc2(x))
-        return self.fc3(x)
+        features = self.feature_layer(x)
+
+        # Value stream
+        value = self.value_stream(features)
+
+        # Advantage stream
+        advantage = self.advantage_stream(features)
+
+        # Combine value and advantage using the dueling architecture formula
+        # Q(s,a) = V(s) + (A(s,a) - mean(A(s,a)))
+        q_values = value + (advantage - advantage.mean(dim=1, keepdim=True))
+
+        return q_values
 
     def reset_noise(self):
-        self.fc1.reset_noise()
-        self.fc2.reset_noise()
-        self.fc3.reset_noise()
+        for module in self.modules():
+            if isinstance(module, NoisyLinear):
+                module.reset_noise()
 
 
 class DQNAgent:
@@ -76,16 +97,16 @@ class DQNAgent:
         self.epsilon = 1.0
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.995
-        self.learning_rate = 0.002  # Tăng learning rate
-        self.batch_size = 256  # Tăng batch size
+        self.learning_rate = 0.002
+        self.batch_size = 256
         self.memory = deque(maxlen=20000)
-        self.model = DQN(state_size, action_size).to(device)
-        self.target_model = DQN(state_size, action_size).to(device)
+        self.model = DuelingDQN(state_size, action_size).to(device)
+        self.target_model = DuelingDQN(state_size, action_size).to(device)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
         self.criterion = nn.MSELoss()
         self.update_target_model()
         self.frame_skip = frame_skip
-        self.early_stop_score = 30  # Early stop nếu đạt điểm này liên tục
+        self.early_stop_score = 30
         self.early_stop_count = 0
         self.early_stop_patience = 5
 
@@ -109,34 +130,45 @@ class DQNAgent:
     def replay(self):
         if len(self.memory) < self.batch_size:
             return
+
         minibatch = random.sample(self.memory, self.batch_size)
         states = np.array([i[0] for i in minibatch])
         actions = np.array([i[1] for i in minibatch])
         rewards = np.array([i[2] for i in minibatch])
         next_states = np.array([i[3] for i in minibatch])
         dones = np.array([i[4] for i in minibatch])
+
         # Reward normalization
         rewards = (rewards - rewards.mean()) / (rewards.std() + 1e-6)
+
         states = torch.FloatTensor(states).to(device)
         actions = torch.LongTensor(actions).to(device)
         rewards = torch.FloatTensor(rewards).to(device)
         next_states = torch.FloatTensor(next_states).to(device)
         dones = torch.FloatTensor(dones).to(device)
+
         self.model.reset_noise()
         self.target_model.reset_noise()
+
+        # Double DQN: Use online network to select actions, target network to evaluate them
         current_q_values = self.model(states).gather(1, actions.unsqueeze(1))
+
         with torch.no_grad():
+            # Select actions using online network
             next_actions = self.model(next_states).max(1)[1].unsqueeze(1)
+            # Evaluate actions using target network
             next_q_values = (
                 self.target_model(next_states).gather(1, next_actions).squeeze()
             )
             target_q_values = rewards + (1 - dones) * self.gamma * next_q_values
+
         loss = self.criterion(current_q_values.squeeze(), target_q_values)
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.model.parameters(), 1.0)
         self.optimizer.step()
         self.update_target_model()
+
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
