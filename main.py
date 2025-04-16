@@ -10,6 +10,23 @@ def train():
     action_size = 2  # [do_nothing, flap]
     agent = DQNAgent(state_size, action_size)
 
+    # Hỏi người dùng có muốn load lại trọng số không
+    weights_path = None
+    if os.path.exists("weights"):
+        weight_files = [f for f in os.listdir("weights") if f.endswith(".pth")]
+        if weight_files:
+            print("\nAvailable weight files:")
+            for i, file in enumerate(weight_files, 1):
+                print(f"{i}. {file}")
+            load_choice = (
+                input("Do you want to load previous weights? (y/n): ").strip().lower()
+            )
+            if load_choice == "y":
+                idx = int(input("Enter the number of the weights file to load: ")) - 1
+                weights_path = os.path.join("weights", weight_files[idx])
+                agent.load(weights_path)
+                print(f"Loaded weights from {weights_path}")
+
     # Training parameters
     episodes = 1000
     target_update_frequency = 10

@@ -87,7 +87,8 @@ class FlappyBird:
         return state
 
     def step(self, action):
-        reward = 0.1  # Small reward for staying alive
+        # Reward shaping: thưởng/phạt dựa trên khoảng cách tới tâm khe ống
+        reward = 0.05  # Thưởng nhỏ khi còn sống
 
         # Handle action
         if action == 1:  # Flap
@@ -103,6 +104,26 @@ class FlappyBird:
             self.pipes.append(self._create_pipe())
             self.last_pipe_time = time_now
 
+        # Find closest pipe
+        closest_pipe = None
+        closest_dist = float("inf")
+        for pipe in self.pipes:
+            if pipe["x"] + 50 > self.bird_x:
+                dist = pipe["x"] - self.bird_x
+                if dist < closest_dist:
+                    closest_dist = dist
+                    closest_pipe = pipe
+
+        # Reward shaping: thưởng/phạt dựa trên khoảng cách chim tới tâm khe ống
+        if closest_pipe:
+            gap_center = closest_pipe["gap_y"]
+            bird_center = self.bird_y + self.bird_size / 2
+            dist_y = abs(bird_center - gap_center)
+            # Chuẩn hóa khoảng cách theo chiều cao màn hình
+            norm_dist = dist_y / self.HEIGHT
+            # Phạt nhẹ nếu chim xa tâm khe, thưởng nếu gần
+            reward += 0.2 * (1 - norm_dist) - 0.1 * norm_dist
+
         # Update and check pipes
         for pipe in self.pipes[:]:
             pipe["x"] -= self.PIPE_SPEED
@@ -116,7 +137,7 @@ class FlappyBird:
             if not pipe["scored"] and pipe["x"] < self.bird_x:
                 pipe["scored"] = True
                 self.score += 1
-                reward = 1
+                reward = 1  # Giữ nguyên thưởng lớn khi qua ống
 
             # Check collision
             if self._check_collision(pipe):
