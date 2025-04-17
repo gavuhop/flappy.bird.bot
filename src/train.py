@@ -67,6 +67,10 @@ BG_NIGHT = pygame.transform.scale2x(
 
 BG_IMG = random.choice((BG_DAY, BG_NIGHT))
 
+# At the top of the file, after the imports
+if not os.path.exists("weights"):
+    os.makedirs("weights")
+
 
 def draw_window(win, birds, pipes, base, score, gen):
     """Draw the game window"""
@@ -126,6 +130,10 @@ def eval_genomes(genomes, config):
     # Initialize score
     score = 0
 
+    # Track best bird
+    best_bird = None
+    best_fitness = 0
+
     # Main game loop
     run = True
     while run:
@@ -135,6 +143,12 @@ def eval_genomes(genomes, config):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
+                # Save the best bird's weights before quitting
+                if best_bird is not None:
+                    if not os.path.exists("weights"):
+                        os.makedirs("weights")
+                    with open("weights/best_bird.pkl", "wb") as f:
+                        pickle.dump(best_bird, f)
                 pygame.quit()
                 quit()
 
@@ -152,6 +166,11 @@ def eval_genomes(genomes, config):
             if bird.alive:
                 # Increment fitness for staying alive
                 ge[x].fitness += 0.1
+
+                # Update best bird if current bird has better fitness
+                if ge[x].fitness > best_fitness:
+                    best_fitness = ge[x].fitness
+                    best_bird = ge[x]
 
                 # Get inputs for neural network
                 if len(pipes) > 0:
@@ -245,17 +264,21 @@ def run(config_path):
     stats = neat.StatisticsReporter()
     pop.add_reporter(stats)
 
-    # Run the algorithm
-    winner = pop.run(eval_genomes, 50)
+    try:
+        # Run the algorithm
+        winner = pop.run(eval_genomes, 50)
 
-    # Save the winner
-    with open("winner.pkl", "wb") as f:
-        pickle.dump(winner, f)
+        # Save the winner
+        with open("winner.pkl", "wb") as f:
+            pickle.dump(winner, f)
 
-    print(f"Best fitness: {winner.fitness}")
+        print(f"Best fitness: {winner.fitness}")
+    except KeyboardInterrupt:
+        print("\nTraining interrupted. Saving best bird...")
+        # The best bird will be saved in eval_genomes when quitting
 
 
 if __name__ == "__main__":
     local_dir = os.path.dirname(__file__)
-    config_path = os.path.join(local_dir, "config.txt")
+    config_path = os.path.join(os.path.dirname(local_dir), "config.txt")
     run(config_path)
