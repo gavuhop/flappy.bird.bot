@@ -86,16 +86,19 @@ def test_ai():
     """Test the trained AI model"""
     # Load the trained model
     try:
-        with open("winner.pkl", "rb") as f:
+        with open("weights/best_bird.pkl", "rb") as f:
             winner = pickle.load(f)
     except FileNotFoundError:
-        print("Error: No trained model found. Please run train.py first.")
+        print(
+            "Error: No trained model found. Please train the AI first (weights/best_bird.pkl not found)."
+        )
         return
 
     # Create neural network from the winner
     import neat
-
-    config_path = os.path.join(os.path.dirname(__file__), "config.txt")
+    local_dir = os.path.dirname(__file__)
+    config_path = os.path.join(os.path.dirname(local_dir), "config.txt")
+    
     config = neat.config.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,

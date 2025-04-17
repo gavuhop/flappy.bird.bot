@@ -269,7 +269,9 @@ def run(config_path):
         winner = pop.run(eval_genomes, 50)
 
         # Save the winner
-        with open("winner.pkl", "wb") as f:
+        if not os.path.exists("weights"):
+            os.makedirs("weights")
+        with open("weights/best_bird.pkl", "wb") as f:
             pickle.dump(winner, f)
 
         print(f"Best fitness: {winner.fitness}")
