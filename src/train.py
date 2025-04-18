@@ -9,13 +9,6 @@ from flappy_bird import Bird, Pipe, Base, WIN_WIDTH, WIN_HEIGHT, STAT_FONT
 pygame.init()
 pygame.font.init()
 
-# Constants
-GRAVITY = 0.5
-FLAP_STRENGTH = -10.5
-PIPE_SPEED = 5
-PIPE_GAP = 200
-PIPE_FREQUENCY = 1500  # milliseconds
-PIPE_SPAWN_DISTANCE = 300  # Distance between pipes
 
 # Colors
 WHITE = (255, 255, 255)

@@ -9,13 +9,6 @@ from flappy_bird import Bird, Pipe, Base, WIN_WIDTH, WIN_HEIGHT, STAT_FONT
 pygame.init()
 pygame.font.init()
 
-# Constants
-GRAVITY = 0.5
-FLAP_STRENGTH = -10.5
-PIPE_SPEED = 5
-PIPE_GAP = 200
-PIPE_FREQUENCY = 1500  # milliseconds
-PIPE_SPAWN_DISTANCE = 300  # Distance between pipes
 
 # Colors
 WHITE = (255, 255, 255)
@@ -96,9 +89,10 @@ def test_ai():
 
     # Create neural network from the winner
     import neat
+
     local_dir = os.path.dirname(__file__)
     config_path = os.path.join(os.path.dirname(local_dir), "config.txt")
-    
+
     config = neat.config.Config(
         neat.DefaultGenome,
         neat.DefaultReproduction,
