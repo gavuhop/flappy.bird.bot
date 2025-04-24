@@ -1,88 +1,119 @@
-# Flappy Bird AI
+# Flappy Bird AI Bot
 
-This project implements a Flappy Bird game with an AI that learns to play using the NEAT (NeuroEvolution of Augmenting Topologies) algorithm.
+A Python implementation of Flappy Bird with an AI bot that learns to play using the NEAT (NeuroEvolution of Augmenting Topologies) algorithm.
 
-## Requirements
+## 🎮 Game Features
 
-- Python 3.6+
-- Pygame
-- NEAT-Python
+- Classic Flappy Bird gameplay
+- Multiple bird color variations (yellow, blue, red)
+- Day and night background modes
+- Score tracking
+- Visual representation of the neural network's decision-making process
 
-You can install the required packages using pip:
+## 🛠️ Technical Implementation
 
-```bash
-pip install pygame neat-python
-```
+The AI bot uses a neural network with the following inputs:
 
-## Project Structure
+- Bird's Y position
+- Distance to the next pipe
+- Height difference between bird and pipe gap
 
-- `flappy_bird.py`: The main game implementation
-- `train.py`: Script to train the AI using NEAT
-- `test.py`: Script to test the trained AI
-- `config.txt`: NEAT configuration file
-- `imgs/`: Directory containing game images
+The neural network has one output: whether to jump or not.
 
-## How to Use
+### Fitness Function
 
-### Training the AI
-
-1. Make sure you have the required images in the `imgs/` directory:
-
-   - `bird1.png`, `bird2.png`, `bird3.png`: Yellow bird animation frames
-   - `bluebird1.png`, `bluebird2.png`, `bluebird3.png`: Blue bird animation frames
-   - `redbird1.png`, `redbird2.png`, `redbird3.png`: Red bird animation frames
-   - `pipe.png`: Pipe image
-   - `base.png`: Ground image
-   - `bg.png`: Day background image
-   - `bg_night.png`: Night background image
-   - `message.png`: Welcome message image
-
-2. Run the training script:
-
-```bash
-python train.py
-```
-
-This will start the training process. The AI will learn to play Flappy Bird over multiple generations. The best performing neural network will be saved to `winner.pkl`.
-
-### Testing the Trained AI
-
-After training, you can test the AI:
-
-```bash
-python test.py
-```
-
-This will load the trained model from `winner.pkl` and run a single bird using the trained neural network.
-
-## How It Works
-
-The AI uses a neural network with 3 inputs:
-
-1. Bird's Y position
-2. Absolute difference between bird's Y position and pipe's height
-3. Absolute difference between bird's Y position and pipe's bottom
-
-The neural network has 1 output: whether to jump or not.
-
-The fitness function rewards birds for:
+The AI is rewarded for:
 
 - Staying alive (+0.1 per frame)
-- Passing pipes (+5.0 per pipe)
-- And penalizes them for:
+- Successfully passing pipes (+5.0 per pipe)
+- And penalized for:
 - Colliding with pipes (-1.0)
 - Hitting the ground or ceiling (-1.0)
 
-## Configuration
+## 📋 Requirements
 
-You can modify the NEAT parameters in `config.txt` to adjust the training process. Key parameters include:
+- Python 3.6+
+- Required packages (see requirements.txt):
+  - pygame
+  - numpy
+  - neat-python
 
-- `pop_size`: Population size
-- `fitness_threshold`: Target fitness to reach
-- `num_hidden`: Number of hidden neurons
-- `num_inputs`: Number of input neurons (should be 3)
-- `num_outputs`: Number of output neurons (should be 1)
+Install dependencies:
 
-## Credits
+```bash
+pip install -r requirements.txt
+```
 
-This project is based on the classic Flappy Bird game and uses the NEAT algorithm for AI training.
+## 🖼️ Required Assets
+
+Place the following images in the `imgs/` directory:
+
+- Bird animations:
+  - `bird1.png`, `bird2.png`, `bird3.png` (yellow bird)
+  - `bluebird1.png`, `bluebird2.png`, `bluebird3.png` (blue bird)
+  - `redbird1.png`, `redbird2.png`, `redbird3.png` (red bird)
+- Environment:
+  - `pipe.png` (obstacle)
+  - `base.png` (ground)
+  - `bg.png` (day background)
+  - `bg_night.png` (night background)
+  - `message.png` (welcome screen)
+
+## 🚀 How to Run
+
+### Training the AI
+
+```bash
+python src/train.py
+```
+
+This will:
+
+- Start the NEAT training process
+- Show real-time visualization of the learning process
+- Save the best performing neural network to `winner.pkl`
+
+### Testing the Trained AI
+
+```bash
+python src/test.py
+```
+
+This will:
+
+- Load the trained model from `winner.pkl`
+- Run a single bird using the trained neural network
+- Show the AI's performance in real-time
+
+## 🧠 How the AI Learns
+
+The project uses the NEAT algorithm to evolve neural networks that can play Flappy Bird. The process involves:
+
+1. Creating an initial population of neural networks with random structures
+2. Evaluating each network's performance in the game
+3. Selecting the best performers for reproduction
+4. Creating new networks through mutation and crossover
+5. Repeating the process until a satisfactory solution is found
+
+## 📊 Configuration
+
+The NEAT parameters can be adjusted in `config.txt` to optimize the training process:
+
+- Population size
+- Fitness threshold
+- Number of hidden neurons
+- Mutation rates
+- Crossover settings
+
+## 🤝 Contributing
+
+Feel free to:
+
+- Report bugs
+- Suggest improvements
+- Submit pull requests
+- Share your trained models
+
+## 📝 License
+
+This project is open source and available under the MIT License.
