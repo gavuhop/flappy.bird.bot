@@ -1,81 +1,88 @@
-# Flappy Bird AI with PyTorch
+# Flappy Bird AI
 
-This project implements a Deep Q-Network (DQN) agent that learns to play Flappy Bird using PyTorch.
-
-## Overview
-
-The project consists of three main components:
-
-1. **Flappy Bird Game**: A simple implementation of the Flappy Bird game using Pygame.
-2. **DQN Agent**: A Deep Q-Network agent implemented in PyTorch that learns to play the game.
-3. **Training and Testing**: Scripts to train and test the agent.
+This project implements a Flappy Bird game with an AI that learns to play using the NEAT (NeuroEvolution of Augmenting Topologies) algorithm.
 
 ## Requirements
 
-- Python 3.10+
-- Pygame 2.6.1
-- NumPy 1.23.5
-- PyTorch 2.1.0
-- Protobuf 3.20.3+
+- Python 3.6+
+- Pygame
+- NEAT-Python
 
-## Installation
+You can install the required packages using pip:
 
-1. Clone the repository:
-
-   ```
-   git clone https://github.com/gavuhop/flappy-bird-bot.git
-   cd flappy-bird-bot
-   ```
-2. Install pytorch following guide:
-   https://pytorch.org/get-started/locally/
-
-3. Install the required packages:
-   ```
-   pip install -r requirements.txt
-   ```
-
-## Usage
-
-### Training
-
-To train a new agent:
-
+```bash
+pip install pygame neat-python
 ```
-python main.py
-```
-
-Then select the "train" mode when prompted. The agent will be trained for 1000 episodes, and the weights will be saved every 100 episodes in the "weights" folder.
-
-### Testing
-
-To test a trained agent:
-
-```
-python main.py
-```
-
-Then select the "test" mode when prompted and choose a weights file from the list.
 
 ## Project Structure
 
-- `main.py`: Main script for training and testing the agent.
-- `agent/dqn_agent.py`: Implementation of the DQN agent using PyTorch.
-- `game/flappy_bird.py`: Implementation of the Flappy Bird game using Pygame.
-- `weights/`: Directory where trained weights are saved.
-- `test_pytorch.py`: Script to test if PyTorch is working correctly.
-- `test_dqn.py`: Script to test the DQN agent implementation.
+- `flappy_bird.py`: The main game implementation
+- `train.py`: Script to train the AI using NEAT
+- `test.py`: Script to test the trained AI
+- `config.txt`: NEAT configuration file
+- `imgs/`: Directory containing game images
+
+## How to Use
+
+### Training the AI
+
+1. Make sure you have the required images in the `imgs/` directory:
+
+   - `bird1.png`, `bird2.png`, `bird3.png`: Yellow bird animation frames
+   - `bluebird1.png`, `bluebird2.png`, `bluebird3.png`: Blue bird animation frames
+   - `redbird1.png`, `redbird2.png`, `redbird3.png`: Red bird animation frames
+   - `pipe.png`: Pipe image
+   - `base.png`: Ground image
+   - `bg.png`: Day background image
+   - `bg_night.png`: Night background image
+   - `message.png`: Welcome message image
+
+2. Run the training script:
+
+```bash
+python train.py
+```
+
+This will start the training process. The AI will learn to play Flappy Bird over multiple generations. The best performing neural network will be saved to `winner.pkl`.
+
+### Testing the Trained AI
+
+After training, you can test the AI:
+
+```bash
+python test.py
+```
+
+This will load the trained model from `winner.pkl` and run a single bird using the trained neural network.
 
 ## How It Works
 
-The DQN agent learns to play Flappy Bird by:
+The AI uses a neural network with 3 inputs:
 
-1. Observing the current state of the game (bird position, velocity, pipe positions).
-2. Choosing an action (flap or do nothing) based on the current state.
-3. Receiving a reward based on the outcome of the action.
-4. Learning from the experience using a neural network.
+1. Bird's Y position
+2. Absolute difference between bird's Y position and pipe's height
+3. Absolute difference between bird's Y position and pipe's bottom
 
-The agent uses experience replay to learn from past experiences and a target network to stabilize training.
+The neural network has 1 output: whether to jump or not.
 
-## License
+The fitness function rewards birds for:
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Staying alive (+0.1 per frame)
+- Passing pipes (+5.0 per pipe)
+- And penalizes them for:
+- Colliding with pipes (-1.0)
+- Hitting the ground or ceiling (-1.0)
+
+## Configuration
+
+You can modify the NEAT parameters in `config.txt` to adjust the training process. Key parameters include:
+
+- `pop_size`: Population size
+- `fitness_threshold`: Target fitness to reach
+- `num_hidden`: Number of hidden neurons
+- `num_inputs`: Number of input neurons (should be 3)
+- `num_outputs`: Number of output neurons (should be 1)
+
+## Credits
+
+This project is based on the classic Flappy Bird game and uses the NEAT algorithm for AI training.
